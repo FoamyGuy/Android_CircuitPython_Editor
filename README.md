@@ -1,5 +1,5 @@
 # Android Circuit Python Editor
----
+
 This app serves as a USB serial terminal for Circuit Python boards. With it you can:
  * see the output of code running on the board.
  * access the REPL and issue python commands to get executed on the board.
