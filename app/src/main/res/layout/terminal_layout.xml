@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#333333"
+    >
+
+
+    <TextView
+        android:id="@+id/terminalTxt"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@id/inputEdt"
+        android:background="#333333"
+        android:scrollbars="vertical|horizontal"
+
+        android:textColor="#00AA00"
+        android:gravity="bottom" />
+
+    <EditText
+        android:id="@+id/inputEdt"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/buttonSend"
+        android:ems="10">
+
+    </EditText>
+
+
+    <Button
+        android:id="@+id/buttonCTRLC"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ctrl-C"
+        android:layout_alignParentBottom="true"
+        android:onClick="sendCtrlC"/>
+
+    <Button
+        android:id="@+id/buttonCTRLD"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/buttonCTRLC"
+        android:text="Ctrl-D"
+        android:layout_alignParentBottom="true"
+        android:onClick="sendCtrlD"/>
+
+    <Button
+        android:id="@+id/buttonSend"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toRightOf="@id/buttonCTRLD"
+        android:text="Send"/>
+
+</RelativeLayout>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#333333"
+    tools:context="com.foamyguy.circuitpythoneditor.MainActivity">
+
+    <ProgressBar
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:indeterminate="false"
+        android:id="@+id/mainProgress"
+        android:progressTint="#3333cc"
+
+
+        android:background="#333333"
+        style="?android:attr/progressBarStyleHorizontal"
+        />
+
+        <android.support.v4.view.ViewPager
+            android:id="@+id/pager"
+            android:layout_below="@id/mainProgress"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+
+        </android.support.v4.view.ViewPager>
+    </RelativeLayout>

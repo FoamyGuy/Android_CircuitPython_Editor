@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#333333">
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="saveMainPy"
+        android:id="@+id/saveBtn"
+        android:text="Save"/>
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/saveBtn"
+        android:onClick="loadMainPy"
+        android:id="@+id/loadBtn"
+        android:text="Load"/>
+
+
+
+    <com.foamyguy.circuitpythoneditor.LineNumberEditText
+        android:layout_below="@id/saveBtn"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingLeft="70px"
+        android:textSize="20sp"
+        android:id="@+id/mainEditor"
+        android:gravity="top"
+        android:background="#333333"
+        android:textColor="#999999"
+        />
+
+    <TextView
+
+        android:layout_below="@id/saveBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:textSize="20sp"
+        android:id="@+id/editorLineNumbers"
+        android:textColor="#aaaaaa"
+        />
+
+</RelativeLayout>
