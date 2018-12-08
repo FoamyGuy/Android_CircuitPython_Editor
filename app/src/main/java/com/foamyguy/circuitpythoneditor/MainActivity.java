@@ -27,11 +27,16 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "CircuitPythonEditor";
     final char ctrlC = '\u0003';
     final char ctrlD = '\u0004';
     final char tab = '\t';
@@ -343,11 +348,11 @@ public class MainActivity extends AppCompatActivity {
             Log.i("CircuitPythonEditor","begining write prep");
             send("import gc");
             Log.i("CircuitPythonEditor","after first send");
-            send("f = open('main.py', 'w')");
+            send("f = open('code.py', 'w')");
             send("f.write('')");
             send("f.close()");
-            //send("f = open('main.py', 'a')");
-            send("f = open('/main.py', 'a')");
+            //send("f = open('code.py', 'a')");
+            send("f = open('/code.py', 'a')");
 
             Log.i("CircuitPythonEditor","opened file");
             String[] lines = editorTxt.getText().toString().split("\r\n");
@@ -360,6 +365,14 @@ public class MainActivity extends AppCompatActivity {
     public void loadMainPy(View view) {
         mainProgress.setIndeterminate(true);
         isLoading = true;
+        sendCtrlC();
+    }
+
+    public void loadSamplePy(View view) {
+
+        String sampleCodeStr = loadAssetTextAsString(view.getContext(), "sample_code.py");
+        editorTxt.setText(sampleCodeStr);
+        showLineNumbers();
         sendCtrlC();
     }
 
@@ -386,7 +399,7 @@ public class MainActivity extends AppCompatActivity {
                         if (data.contains("Press any key to enter the REPL. Use CTRL-D to reload.")) {
                             Log.i("CircuitPythonEditor", "Found REPL msg");
                             mActivity.get().send("a");
-                            mActivity.get().send("f = open('main.py', 'r')");
+                            mActivity.get().send("f = open('code.py', 'r')");
                             postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
@@ -439,7 +452,8 @@ public class MainActivity extends AppCompatActivity {
     private void showLineNumbers(){
         String lineNumbersStr = "";
         int lines = editorTxt.getText().toString().split("\r\n").length;
-        for (int i = 1; i < lines; i++){
+        Log.i(TAG, "found lines: " + lines);
+        for (int i = 1; i <= lines; i++){
             lineNumbersStr +=  i + "\n";
         }
         lineNumbersTxt.setText(lineNumbersStr);
@@ -524,6 +538,42 @@ public class MainActivity extends AppCompatActivity {
             send(strings[0]);
             return null;
         }
+    }
+
+    private String loadAssetTextAsString(Context context, String name) {
+        BufferedReader in = null;
+        try {
+            StringBuilder buf = new StringBuilder();
+            InputStream is = context.getAssets().open(name);
+            in = new BufferedReader(new InputStreamReader(is));
+
+            String str;
+            boolean isFirst = true;
+            while ( (str = in.readLine()) != null ) {
+                if (isFirst) {
+                    isFirst = false;
+                }
+                else {
+                    buf.append('\r');
+                    buf.append('\n');
+                }
+                buf.append(str);
+            }
+            return buf.toString();
+        } catch (IOException e) {
+            Log.e(TAG, "Error opening asset " + name);
+            e.printStackTrace();
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    Log.e(TAG, "Error closing asset " + name);
+                }
+            }
+        }
+
+        return null;
     }
 
 }

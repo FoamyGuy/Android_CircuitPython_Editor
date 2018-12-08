@@ -18,12 +18,21 @@
         android:id="@+id/loadBtn"
         android:text="Load"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:onClick="loadSamplePy"
+        android:id="@+id/sampleBtn"
+        android:text="Sample"/>
+
 
 
     <com.foamyguy.circuitpythoneditor.LineNumberEditText
         android:layout_below="@id/saveBtn"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+
         android:paddingLeft="70px"
         android:textSize="20sp"
         android:id="@+id/mainEditor"
