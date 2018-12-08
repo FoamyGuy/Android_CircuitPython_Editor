@@ -19,7 +19,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -35,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
 
     final char ctrlC = '\u0003';
     final char ctrlD = '\u0004';
+    final char tab = '\t';
 
     boolean waitingForRead = false;
 
@@ -52,9 +52,17 @@ public class MainActivity extends AppCompatActivity {
 
     private StringBuilder mainPyStringBuilder;
 
+    private boolean waitingForTabResult;
 
+    private StringBuilder tabResult = new StringBuilder();
+
+    private StringBuilder tempTabResult = new StringBuilder();
+
+    private Runnable tabResultDoneRun;
 
     private boolean isLoading = false;
+
+    private StringBuilder alreadySent = new StringBuilder();
     /*
      * Notifications from UsbService will be received here.
      */
@@ -111,6 +119,30 @@ public class MainActivity extends AppCompatActivity {
 
         mHandler = new MyHandler(this);
 
+        tabResultDoneRun = new Runnable() {
+            @Override
+            public void run() {
+                if (tempTabResult.toString().contains("Traceback") == false){
+                    if(tempTabResult.toString().contains("       ") == false){
+                        //if(editText.getText().toString().startsWith(tempTabResult.substring(0,2))) {
+
+                        //}
+                        editText.setText("");
+                        String[] lines = display.getText().toString().split("\n");
+                        String lastLine = lines[lines.length-1];
+                        editText.append(lastLine.substring(4));
+
+                        alreadySent = new StringBuilder(editText.getText().toString());
+                        Log.i("CircuitPythonEditor", "tab result done run: " + tempTabResult.toString());
+                    }
+                }
+
+                tempTabResult = new StringBuilder();
+                waitingForTabResult = false;
+
+            }
+        };
+
 
     }
 
@@ -156,6 +188,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendCtrlC(View view) {
+
+        sendCtrlC();
+        editText.postDelayed(new Runnable(){
+            @Override
+            public void run() {
+                usbService.write(("\n").getBytes());
+            }
+        }, 100);
+    }
+
+    private void sendCtrlC(){
         if (usbService != null) { // if UsbService was correctly binded, Send data
             usbService.write((""+ctrlC).getBytes());
         }
@@ -164,6 +207,18 @@ public class MainActivity extends AppCompatActivity {
     public void sendCtrlD(View view) {
         if (usbService != null) { // if UsbService was correctly binded, Send data
             usbService.write((""+ctrlD).getBytes());
+        }
+    }
+    public void sendTab(View view) {
+        if (usbService != null) { // if UsbService was correctly binded, Send data
+            waitingForTabResult = true;
+            String data = editText.getText().toString();
+            if (alreadySent.toString().length() > 0){
+                data = data.replaceFirst(alreadySent.toString(), "");
+            }
+            usbService.write((data+tab).getBytes());
+            alreadySent.append(editText.getText().toString());
+
         }
     }
 
@@ -305,7 +360,7 @@ public class MainActivity extends AppCompatActivity {
     public void loadMainPy(View view) {
         mainProgress.setIndeterminate(true);
         isLoading = true;
-        sendCtrlC(null);
+        sendCtrlC();
     }
 
     /*
@@ -354,6 +409,19 @@ public class MainActivity extends AppCompatActivity {
                             mActivity.get().showLineNumbers();
                             mActivity.get().waitingForRead = false;
                             mActivity.get().mainProgress.setIndeterminate(false);
+                        }
+                    }
+                    if (mActivity.get().waitingForTabResult){
+                        if(data.contains(">>>") == false) {
+                            mActivity.get().tabResult.append(data);
+                            mActivity.get().tempTabResult.append(data);
+                            Log.i("CircuitPythonEditor", "tab result:" + data);
+                            //mActivity.get().editText.setText(mActivity.get().editText.getText().toString() + data);
+                            mActivity.get().editText.removeCallbacks(mActivity.get().tabResultDoneRun);
+                            mActivity.get().editText.postDelayed(mActivity.get().tabResultDoneRun, 100);
+                        }else {
+                            Log.i("CircuitPythonEditor", "tab final result:" + mActivity.get().tabResult.toString());
+                            mActivity.get().waitingForTabResult = false;
                         }
                     }
                     mActivity.get().display.append(data);
@@ -414,8 +482,13 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(View v) {
                         if (!editText.getText().toString().equals("")) {
                             String data = editText.getText().toString();
+                            if (alreadySent.toString().length() > 0){
+                                data = data.replaceFirst(alreadySent.toString(), "");
+                                alreadySent = new StringBuilder();
+                            }
                             if (usbService != null) { // if UsbService was correctly binded, Send data
                                 usbService.write((data+"\r\n").getBytes());
+                                editText.setText("");
                             }
                         }
                     }

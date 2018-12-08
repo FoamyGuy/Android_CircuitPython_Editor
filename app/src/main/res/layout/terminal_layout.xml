@@ -24,8 +24,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@id/buttonSend"
+        android:textColor="#00AA00"
         android:ems="10">
-
+7
     </EditText>
 
 
@@ -47,11 +48,20 @@
         android:onClick="sendCtrlD"/>
 
     <Button
+        android:id="@+id/buttonTab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/buttonCTRLD"
+        android:text="Tab"
+        android:layout_alignParentBottom="true"
+        android:onClick="sendTab"/>
+
+    <Button
         android:id="@+id/buttonSend"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_toRightOf="@id/buttonCTRLD"
+        android:layout_toRightOf="@id/buttonTab"
         android:text="Send"/>
 
 </RelativeLayout>
