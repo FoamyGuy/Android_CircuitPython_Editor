@@ -4,6 +4,7 @@ import time
 # Change the color here.
 color = (0,0,255) 
 
+# Change the delay here. The lower the delay value the faster the animation. 
 delay = 50 
 
 pixels = cpx.pixels 

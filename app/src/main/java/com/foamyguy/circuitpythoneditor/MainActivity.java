@@ -127,8 +127,8 @@ public class MainActivity extends AppCompatActivity {
         tabResultDoneRun = new Runnable() {
             @Override
             public void run() {
-                if (tempTabResult.toString().contains("Traceback") == false){
-                    if(tempTabResult.toString().contains("       ") == false){
+                if (!tempTabResult.toString().contains("Traceback")){
+                    if(!tempTabResult.toString().contains("       ")){
                         //if(editText.getText().toString().startsWith(tempTabResult.substring(0,2))) {
 
                         //}
@@ -163,7 +163,8 @@ public class MainActivity extends AppCompatActivity {
     public void onPause() {
         super.onPause();
         unregisterReceiver(mUsbReceiver);
-        unbindService(usbConnection);
+        //unbindService(usbConnection);
+        stopService(new Intent(this, UsbService.class));
     }
 
     private void startService(Class<?> service, ServiceConnection serviceConnection, Bundle extras) {
@@ -368,12 +369,20 @@ public class MainActivity extends AppCompatActivity {
         sendCtrlC();
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        
+        
+    }
+
     public void loadSamplePy(View view) {
 
         String sampleCodeStr = loadAssetTextAsString(view.getContext(), "sample_code.py");
         editorTxt.setText(sampleCodeStr);
         showLineNumbers();
         sendCtrlC();
+        
     }
 
     /*
@@ -413,7 +422,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     if (mActivity.get().waitingForRead){
-                        if(data.contains(">>>") == false) {
+                        if(!data.contains(">>>")) {
                             mActivity.get().mainPyStringBuilder.append(data);
                         }else{
                             String code = mActivity.get().mainPyStringBuilder.toString();
@@ -425,7 +434,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     if (mActivity.get().waitingForTabResult){
-                        if(data.contains(">>>") == false) {
+                        if(!data.contains(">>>")) {
                             mActivity.get().tabResult.append(data);
                             mActivity.get().tempTabResult.append(data);
                             Log.i("CircuitPythonEditor", "tab result:" + data);
