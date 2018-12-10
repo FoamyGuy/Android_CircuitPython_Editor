@@ -7,27 +7,35 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -36,7 +44,7 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "CircuitPythonEditor";
+    public static final String TAG = "CircuitPythonEditor";
     final char ctrlC = '\u0003';
     final char ctrlD = '\u0004';
     final char tab = '\t';
@@ -68,6 +76,17 @@ public class MainActivity extends AppCompatActivity {
     private boolean isLoading = false;
 
     private StringBuilder alreadySent = new StringBuilder();
+
+    private RelativeLayout macroLyt;
+
+    private RelativeLayout macroEditorLyt;
+
+    private LineNumberEditText macroEditorTxt;
+    private TextView macroLineNumbersTxt;
+
+    private MacroFileAdapter macroFileAdapter;
+
+    private String currentlyEditingMacro = "";
     /*
      * Notifications from UsbService will be received here.
      */
@@ -116,10 +135,9 @@ public class MainActivity extends AppCompatActivity {
 
         mainPyStringBuilder = new StringBuilder();
         MainPagerAdapter mAdapter = new MainPagerAdapter();
-        ViewPager mainPager = (ViewPager)findViewById(R.id.pager);
+        ViewPager mainPager = (ViewPager) findViewById(R.id.pager);
         mainPager.setAdapter(mAdapter);
-        mainProgress = (ProgressBar)findViewById(R.id.mainProgress);
-
+        mainProgress = (ProgressBar) findViewById(R.id.mainProgress);
 
 
         mHandler = new MyHandler(this);
@@ -127,14 +145,14 @@ public class MainActivity extends AppCompatActivity {
         tabResultDoneRun = new Runnable() {
             @Override
             public void run() {
-                if (!tempTabResult.toString().contains("Traceback")){
-                    if(!tempTabResult.toString().contains("       ")){
+                if (!tempTabResult.toString().contains("Traceback")) {
+                    if (!tempTabResult.toString().contains("       ")) {
                         //if(editText.getText().toString().startsWith(tempTabResult.substring(0,2))) {
 
                         //}
                         editText.setText("");
                         String[] lines = display.getText().toString().split("\n");
-                        String lastLine = lines[lines.length-1];
+                        String lastLine = lines[lines.length - 1];
                         editText.append(lastLine.substring(4));
 
                         alreadySent = new StringBuilder(editText.getText().toString());
@@ -148,6 +166,12 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        File macrosDir = new File(getFilesDir() + "/macros/");
+        Log.i(TAG, macrosDir.getAbsolutePath());
+        if (!macrosDir.exists()) {
+            macrosDir.mkdir();
+        }
+        Log.i(TAG, "macroFileAdapter dir exist? " + macrosDir.exists());
 
     }
 
@@ -196,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
     public void sendCtrlC(View view) {
 
         sendCtrlC();
-        editText.postDelayed(new Runnable(){
+        editText.postDelayed(new Runnable() {
             @Override
             public void run() {
                 usbService.write(("\n").getBytes());
@@ -204,54 +228,57 @@ public class MainActivity extends AppCompatActivity {
         }, 100);
     }
 
-    private void sendCtrlC(){
+    private void sendCtrlC() {
         if (usbService != null) { // if UsbService was correctly binded, Send data
-            usbService.write((""+ctrlC).getBytes());
+            usbService.write(("" + ctrlC).getBytes());
         }
     }
 
     public void sendCtrlD(View view) {
         if (usbService != null) { // if UsbService was correctly binded, Send data
-            usbService.write((""+ctrlD).getBytes());
+            usbService.write(("" + ctrlD).getBytes());
         }
     }
+
     public void sendTab(View view) {
         if (usbService != null) { // if UsbService was correctly binded, Send data
             waitingForTabResult = true;
             String data = editText.getText().toString();
-            if (alreadySent.toString().length() > 0){
+            if (alreadySent.toString().length() > 0) {
                 data = data.replaceFirst(alreadySent.toString(), "");
             }
-            usbService.write((data+tab).getBytes());
+            usbService.write((data + tab).getBytes());
             alreadySent.append(editText.getText().toString());
 
         }
     }
 
-    private void send(String text){
+    private void send(String text) {
         //Log.i("CircuitPythonEditor", "inside send");
         if (usbService != null) { // if UsbService was correctly binded, Send data
             usbService.write((text + "\r\n").getBytes());
             //Log.i("CircuitPythonEditor", "after write");
         }
     }
+
     int curIndex = 0;
-    public boolean writeFile(String[] lines){
+
+    public boolean writeFile(String[] lines) {
         Log.i("CircuitPythonEditor", "line: " + lines[curIndex]);
-        if(lines[curIndex].length() > 0) {
+        if (lines[curIndex].length() > 0) {
             //Log.i("CircuitPythonEditor", "last char: " + lines[curIndex].charAt(lines[curIndex].length() - 1));
             //Log.i("CircuitPythonEditor", "newline: " + (lines[curIndex].charAt(lines[curIndex].length() - 1) == '\n'));
-            send("f.write(\"\"\"" + lines[curIndex].substring(0, lines[curIndex].length()-1) + "\\r\\n\"\"\")");
-        }else{
+            send("f.write(\"\"\"" + lines[curIndex].substring(0, lines[curIndex].length() - 1) + "\\r\\n\"\"\")");
+        } else {
             send("f.write(\"\"\"" + lines[curIndex] + "\\r\\n\"\"\")");
         }
 
-        if (curIndex >= lines.length-1){
+        if (curIndex >= lines.length - 1) {
             send("f.close()");
             mainProgress.setProgress(0);
             curIndex = 0;
             return true;
-        }else {
+        } else {
             curIndex++;
             mainProgress.setProgress(curIndex);
             writeFile(lines);
@@ -259,19 +286,19 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    public boolean writeFileBackground(String[] lines){
+    public boolean writeFileBackground(String[] lines) {
         Log.i("CircuitPythonEditor", "line: " + lines[curIndex]);
 
-        Thread t = new Thread(){
+        Thread t = new Thread() {
             @Override
             public void run() {
                 super.run();
 
-                for (int i = 0; i < lines.length; i++){
-                    if(lines[i].length() > 0) {
+                for (int i = 0; i < lines.length; i++) {
+                    if (lines[i].length() > 0) {
 
-                        send("f.write(\"\"\"" + lines[i].substring(0, lines[i].length()-1) + "\\r\\n\"\"\")");
-                    }else{
+                        send("f.write(\"\"\"" + lines[i].substring(0, lines[i].length() - 1) + "\\r\\n\"\"\")");
+                    } else {
                         send("f.write(\"\"\"" + lines[i] + "\\r\\n\"\"\")");
                     }
                     final int tempI = i;
@@ -305,13 +332,13 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    public boolean writeFileDelayed(String[] lines){
+    public boolean writeFileDelayed(String[] lines) {
         Log.i("CircuitPythonEditor", "line: " + lines[curIndex]);
-        if(lines[curIndex].length() > 0) {
+        if (lines[curIndex].length() > 0) {
             //Log.i("CircuitPythonEditor", "last char: " + lines[curIndex].charAt(lines[curIndex].length() - 1));
             //Log.i("CircuitPythonEditor", "newline: " + (lines[curIndex].charAt(lines[curIndex].length() - 1) == '\n'));
-            send("f.write(\"\"\"" + lines[curIndex].substring(0, lines[curIndex].length()-1) + "\\r\\n\"\"\")");
-        }else{
+            send("f.write(\"\"\"" + lines[curIndex].substring(0, lines[curIndex].length() - 1) + "\\r\\n\"\"\")");
+        } else {
             send("f.write(\"\"\"" + lines[curIndex] + "\\r\\n\"\"\")");
         }
         /*if (lines[curIndex].length() > 1) {
@@ -321,12 +348,12 @@ public class MainActivity extends AppCompatActivity {
         //send("gc.collect()");
         //send("print(gc.mem_free())");
 
-        if (curIndex >= lines.length-1){
+        if (curIndex >= lines.length - 1) {
             send("f.close()");
             mainProgress.setProgress(0);
             curIndex = 0;
             return true;
-        }else{
+        } else {
             editorTxt.postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -340,28 +367,55 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
+    public void executeMacro(String[] macroLines) {
+        Log.i("CircuitPythonEditor", "line: " + macroLines[curIndex]);
+        if (macroLines[curIndex].length() > 0) {
+            //Log.i("CircuitPythonEditor", "last char: " + lines[curIndex].charAt(lines[curIndex].length() - 1));
+            //Log.i("CircuitPythonEditor", "newline: " + (lines[curIndex].charAt(lines[curIndex].length() - 1) == '\n'));
+            send( macroLines[curIndex] );
+        } else {
+            send("\r\n");
+        }
+        
+        if (curIndex >= macroLines.length - 1) {
+            curIndex = 0;
+        } else {
+            editorTxt.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    curIndex++;
+                    //mainProgress.setProgress(curIndex);
+
+                    executeMacro(macroLines);
+                }
+            }, 100);
+        }
+
+
+    }
+
     public void saveMainPy(View view) {
         /*
         import storage
         storage.remount("/", False)
          */
 
-            Log.i("CircuitPythonEditor","begining write prep");
-            send("import gc");
-            Log.i("CircuitPythonEditor","after first send");
-            send("f = open('code.py', 'w')");
-            send("f.write('')");
-            send("f.close()");
-            //send("f = open('code.py', 'a')");
-            send("f = open('/code.py', 'a')");
+        Log.i("CircuitPythonEditor", "begining write prep");
+        send("import gc");
+        Log.i("CircuitPythonEditor", "after first send");
+        send("f = open('code.py', 'w')");
+        send("f.write('')");
+        send("f.close()");
+        //send("f = open('code.py', 'a')");
+        send("f = open('/code.py', 'a')");
 
-            Log.i("CircuitPythonEditor","opened file");
-            String[] lines = editorTxt.getText().toString().split("\r\n");
-            Log.i("CircuitPythonEditor","lines: " + lines.length);
-            mainProgress.setMax(lines.length-1);
-            writeFileDelayed(lines);
+        Log.i("CircuitPythonEditor", "opened file");
+        String[] lines = editorTxt.getText().toString().split("\r\n");
+        Log.i("CircuitPythonEditor", "lines: " + lines.length);
+        mainProgress.setMax(lines.length - 1);
+        writeFileDelayed(lines);
 
-        }
+    }
 
     public void loadMainPy(View view) {
         mainProgress.setIndeterminate(true);
@@ -372,8 +426,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        
-        
+
+
     }
 
     public void loadSamplePy(View view) {
@@ -382,7 +436,13 @@ public class MainActivity extends AppCompatActivity {
         editorTxt.setText(sampleCodeStr);
         showLineNumbers();
         sendCtrlC();
-        
+
+    }
+
+    public void saveMacro(View view) {
+        String macroContent = macroEditorTxt.getText().toString();
+        Macro.writeMacroFile(view.getContext(), currentlyEditingMacro, macroContent);
+        macroEditorLyt.setVisibility(View.GONE);
     }
 
     /*
@@ -404,7 +464,7 @@ public class MainActivity extends AppCompatActivity {
                 case UsbService.MESSAGE_FROM_SERIAL_PORT:
                     String data = (String) msg.obj;
                     //Log.i("CircuitPythonEditor", data);
-                    if(mActivity.get().isLoading) {
+                    if (mActivity.get().isLoading) {
                         if (data.contains("Press any key to enter the REPL. Use CTRL-D to reload.")) {
                             Log.i("CircuitPythonEditor", "Found REPL msg");
                             mActivity.get().send("a");
@@ -421,10 +481,10 @@ public class MainActivity extends AppCompatActivity {
                             }, 500);
                         }
                     }
-                    if (mActivity.get().waitingForRead){
-                        if(!data.contains(">>>")) {
+                    if (mActivity.get().waitingForRead) {
+                        if (!data.contains(">>>")) {
                             mActivity.get().mainPyStringBuilder.append(data);
-                        }else{
+                        } else {
                             String code = mActivity.get().mainPyStringBuilder.toString();
                             mActivity.get().mainPyStringBuilder = new StringBuilder();
                             mActivity.get().editorTxt.setText(code.substring(17));
@@ -433,15 +493,15 @@ public class MainActivity extends AppCompatActivity {
                             mActivity.get().mainProgress.setIndeterminate(false);
                         }
                     }
-                    if (mActivity.get().waitingForTabResult){
-                        if(!data.contains(">>>")) {
+                    if (mActivity.get().waitingForTabResult) {
+                        if (!data.contains(">>>")) {
                             mActivity.get().tabResult.append(data);
                             mActivity.get().tempTabResult.append(data);
                             Log.i("CircuitPythonEditor", "tab result:" + data);
                             //mActivity.get().editText.setText(mActivity.get().editText.getText().toString() + data);
                             mActivity.get().editText.removeCallbacks(mActivity.get().tabResultDoneRun);
                             mActivity.get().editText.postDelayed(mActivity.get().tabResultDoneRun, 100);
-                        }else {
+                        } else {
                             Log.i("CircuitPythonEditor", "tab final result:" + mActivity.get().tabResult.toString());
                             mActivity.get().waitingForTabResult = false;
                         }
@@ -458,16 +518,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showLineNumbers(){
+    private void showLineNumbers() {
         String lineNumbersStr = "";
         int lines = editorTxt.getText().toString().split("\r\n").length;
         Log.i(TAG, "found lines: " + lines);
-        for (int i = 1; i <= lines; i++){
-            lineNumbersStr +=  i + "\n";
+        for (int i = 1; i <= lines; i++) {
+            lineNumbersStr += i + "\n";
         }
         lineNumbersTxt.setText(lineNumbersStr);
     }
 
+    private void showMacroLineNumbers() {
+        String lineNumbersStr = "";
+        int lines = macroEditorTxt.getText().toString().split("\n").length;
+        Log.i(TAG, "found lines: " + lines);
+        for (int i = 1; i <= lines; i++) {
+            lineNumbersStr += i + "\n";
+        }
+        macroLineNumbersTxt.setText(lineNumbersStr);
+    }
 
 
     public class MainPagerAdapter extends PagerAdapter {
@@ -486,7 +555,10 @@ public class MainActivity extends AppCompatActivity {
 
             if (position == 0) {
                 page = inflater.inflate(R.layout.terminal_layout, null);
-
+                macroLyt = page.findViewById(R.id.macroLyt);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    macroLyt.setElevation(1000f);
+                }
                 display = (TextView) page.findViewById(R.id.terminalTxt);
                 /*display.setOnTouchListener(new View.OnTouchListener() {
 
@@ -496,6 +568,65 @@ public class MainActivity extends AppCompatActivity {
                         return false;
                     }
                 });*/
+                display.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View view) {
+                        macroLyt.setVisibility(View.VISIBLE);
+                        return true;
+                    }
+                });
+
+                ListView macroList = page.findViewById(R.id.macroFilesLst);
+                File macrosDir = new File(getFilesDir() + "/macros/");
+                if (macroFileAdapter == null) {
+                    macroFileAdapter = new MacroFileAdapter(macroList.getContext(), Macro.getMacroFileList(macroList.getContext()));
+                    macroList.setAdapter(macroFileAdapter);
+                } else {
+                    macroFileAdapter.removeAll();
+                    macroFileAdapter.addAll(Macro.getMacroFileList(macroList.getContext()));
+                    macroFileAdapter.notifyDataSetChanged();
+                }
+                EditText newMacroNameEdt = page.findViewById(R.id.newMacroNameEdt);
+                RelativeLayout newMacroLyt = page.findViewById(R.id.newMacroNameLyt);
+                Button newMacroBtn = page.findViewById(R.id.newMacroBtn);
+
+                macroEditorLyt = page.findViewById(R.id.macroEditorLyt);
+                macroEditorTxt = page.findViewById(R.id.macroEditor);
+                macroLineNumbersTxt = page.findViewById(R.id.macroEditorLineNumbers);
+                macroEditorTxt.setLineNumbersText(macroLineNumbersTxt);
+                macroEditorTxt.setHorizontallyScrolling(true);
+
+                Button createBtn = page.findViewById(R.id.createMacroBtn);
+
+                createBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        newMacroLyt.setVisibility(View.GONE);
+
+                        File newMacroFile = new File(getFilesDir() + "/macros/" + newMacroNameEdt.getText().toString());
+                        if (!newMacroFile.exists()) {
+                            try {
+                                newMacroFile.createNewFile();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        macroFileAdapter.removeAll();
+                        macroFileAdapter.addAll(Macro.getMacroFileList(macroList.getContext()));
+                        macroFileAdapter.notifyDataSetChanged();
+                    }
+                });
+
+                newMacroBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        newMacroLyt.setVisibility(View.VISIBLE);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            newMacroLyt.setElevation(1001);
+                        }
+                    }
+                });
 
                 display.setMovementMethod(new ScrollingMovementMethod());
                 editText = (EditText) page.findViewById(R.id.inputEdt);
@@ -505,24 +636,24 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(View v) {
                         if (!editText.getText().toString().equals("")) {
                             String data = editText.getText().toString();
-                            if (alreadySent.toString().length() > 0){
+                            if (alreadySent.toString().length() > 0) {
                                 data = data.replaceFirst(alreadySent.toString(), "");
                                 alreadySent = new StringBuilder();
                             }
                             if (usbService != null) { // if UsbService was correctly binded, Send data
-                                usbService.write((data+"\r\n").getBytes());
+                                usbService.write((data + "\r\n").getBytes());
                                 editText.setText("");
                             }
                         }
                     }
                 });
-            }else if (position == 1){
+            } else if (position == 1) {
                 page = inflater.inflate(R.layout.code_editor_layout, null);
 
                 editorTxt = (LineNumberEditText) page.findViewById(R.id.mainEditor);
 
                 editorTxt.setHorizontallyScrolling(true);
-                lineNumbersTxt = (TextView)page.findViewById(R.id.editorLineNumbers);
+                lineNumbersTxt = (TextView) page.findViewById(R.id.editorLineNumbers);
                 editorTxt.setLineNumbersText(lineNumbersTxt);
 
                 /*editorTxt.setOptions(Options.Default.get(editorTxt.getContext())
@@ -541,7 +672,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private class SendSerialTask extends AsyncTask<String, Void, Void>{
+    private class SendSerialTask extends AsyncTask<String, Void, Void> {
         @Override
         protected Void doInBackground(String... strings) {
             send(strings[0]);
@@ -558,11 +689,10 @@ public class MainActivity extends AppCompatActivity {
 
             String str;
             boolean isFirst = true;
-            while ( (str = in.readLine()) != null ) {
+            while ((str = in.readLine()) != null) {
                 if (isFirst) {
                     isFirst = false;
-                }
-                else {
+                } else {
                     buf.append('\r');
                     buf.append('\n');
                 }
@@ -583,6 +713,84 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return null;
+    }
+
+
+    public class MacroFileAdapter extends ArrayAdapter<File> {
+        private LayoutInflater inflater;
+
+        public MacroFileAdapter(@NonNull Context context, File[] files) {
+            super(context, 0);
+            this.addAll(files);
+            inflater = (LayoutInflater.from(context));
+
+        }
+
+        @NonNull
+        @Override
+        public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+            RelativeLayout row = (RelativeLayout) convertView;
+            if (row == null) {
+                row = (RelativeLayout) inflater.inflate(R.layout.row_macro_file, parent, false);
+            }
+            TextView fileNameTxt = row.findViewById(R.id.nameTxt);
+            Button runBtn = row.findViewById(R.id.runBtn);
+            Button editBtn = row.findViewById(R.id.editBtn);
+
+            editBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Log.i(TAG, "edit btn");
+                    macroEditorTxt.setText(Macro.readMacroFile(view.getContext(), getItem(position).getName()));
+                    macroEditorLyt.setVisibility(View.VISIBLE);
+                    macroEditorTxt.addTextChangedListener(new TextWatcher() {
+                        @Override
+                        public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                            Log.i(TAG, "beforeChange");
+                        }
+
+                        @Override
+                        public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                            Log.i(TAG, "onChange");
+                            showMacroLineNumbers();
+                        }
+
+                        @Override
+                        public void afterTextChanged(Editable editable) {
+                            Log.i(TAG, "afterChange");
+                        }
+                    });
+                    showMacroLineNumbers();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        macroEditorLyt.setElevation(1002);
+                    }
+                    currentlyEditingMacro = getItem(position).getName();
+                }
+            });
+
+            runBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String macroStr = Macro.readMacroFile(view.getContext(), getItem(position).getName());
+                    String[] lines = macroStr.split("\n");
+                    executeMacro(lines);
+                    macroLyt.setVisibility(View.GONE);
+
+                }
+            });
+
+            fileNameTxt.setText(getItem(position).getName());
+
+
+            return row;
+        }
+
+        public void removeAll() {
+            int startingCount = getCount();
+            for (int i = 0; i < startingCount; i++) {
+                remove(getItem(i));
+            }
+        }
     }
 
 }

@@ -63,5 +63,101 @@
         android:layout_alignParentBottom="true"
         android:layout_toRightOf="@id/buttonTab"
         android:text="Send"/>
+    
+    
+    <RelativeLayout
+        android:id="@+id/macroLyt"
+        android:background="#999999"
+        
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        
+        <Button 
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Macro"
+            android:id="@+id/newMacroBtn"
+            />
+        
+        
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/newMacroNameLyt"
+            android:visibility="gone"
+            android:background="#999999"
+            >
+            
+            <Button
+                android:id="@+id/createMacroBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" 
+                android:text="Create"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentEnd="true" />
+            <EditText
+                android:layout_alignParentLeft="true"
+                android:layout_toLeftOf="@id/createMacroBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/newMacroNameEdt"
+                android:layout_alignParentStart="true"
+                android:layout_toStartOf="@id/createMacroBtn" />
+            
+        </RelativeLayout>
+
+            
+        
+        <ListView
+            android:layout_below="@id/newMacroBtn"
+            android:id="@+id/macroFilesLst"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        </ListView>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/macroEditorLyt"
+        android:background="#999999"
+
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="saveMacro"
+            android:id="@+id/macroSaveBtn"
+            android:text="Save"/>
+
+        
+        <com.foamyguy.circuitpythoneditor.LineNumberEditText
+            android:layout_below="@id/macroSaveBtn"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+
+            android:paddingLeft="70px"
+            android:textSize="20sp"
+            android:id="@+id/macroEditor"
+            android:gravity="top"
+            android:background="#333333"
+            android:textColor="#999999"
+            />
+
+        <TextView
+
+            android:layout_below="@id/macroSaveBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textSize="20sp"
+            android:id="@+id/macroEditorLineNumbers"
+            android:textColor="#aaaaaa"
+            />
+        
+    </RelativeLayout>
+
 
 </RelativeLayout>

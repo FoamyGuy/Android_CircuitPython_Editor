@@ -156,6 +156,8 @@ public class UsbService extends Service {
     public void onDestroy() {
         super.onDestroy();
         UsbService.SERVICE_CONNECTED = false;
+        unregisterReceiver(usbReceiver);
+        
     }
 
     /*
@@ -279,4 +281,6 @@ public class UsbService extends Service {
             }
         }
     }
+    
+    
 }
