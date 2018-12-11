@@ -67,16 +67,27 @@
     
     <RelativeLayout
         android:id="@+id/macroLyt"
-        android:background="#999999"
+        android:background="#333333"
         
         android:visibility="gone"
+        android:padding="8dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
         
-        <Button 
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="New Macro"
+            android:text="Macros"
+            android:textColor="#aaaaaa"
+            android:textSize="28sp"
+            android:layout_alignParentLeft="true"
+            />
+        
+        <ImageView 
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:src="@drawable/icon_new"
             android:id="@+id/newMacroBtn"
             />
         
@@ -84,16 +95,18 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:padding="8dp"
             android:id="@+id/newMacroNameLyt"
             android:visibility="gone"
-            android:background="#999999"
+            android:background="#333333"
             >
             
-            <Button
+            <ImageView
                 android:id="@+id/createMacroBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" 
-                android:text="Create"
+                android:src="@drawable/icon_save_green"
+                
                 android:layout_alignParentRight="true"
                 android:layout_alignParentEnd="true" />
             <EditText
@@ -120,18 +133,31 @@
 
     <RelativeLayout
         android:id="@+id/macroEditorLyt"
-        android:background="#999999"
+        android:background="#333333"
 
         android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <Button
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Macro Editor"
+            android:textColor="#aaaaaa"
+            android:textSize="28sp"
+            android:paddingLeft="8dp"
+            android:layout_alignParentLeft="true"
+            />
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
             android:onClick="saveMacro"
+            android:layout_marginRight="8dp"
+            android:layout_marginTop="8dp"
             android:id="@+id/macroSaveBtn"
-            android:text="Save"/>
+            android:src="@drawable/icon_save_green"/>
 
         
         <com.foamyguy.circuitpythoneditor.LineNumberEditText

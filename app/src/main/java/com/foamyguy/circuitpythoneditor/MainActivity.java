@@ -1,8 +1,11 @@
 package com.foamyguy.circuitpythoneditor;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -25,9 +28,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -81,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
 
     private RelativeLayout macroEditorLyt;
 
+    private RelativeLayout newMacroNameLyt;
+            
     private LineNumberEditText macroEditorTxt;
     private TextView macroLineNumbersTxt;
 
@@ -572,6 +579,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public boolean onLongClick(View view) {
                         macroLyt.setVisibility(View.VISIBLE);
+                        hideKeyboard();
                         return true;
                     }
                 });
@@ -587,8 +595,8 @@ public class MainActivity extends AppCompatActivity {
                     macroFileAdapter.notifyDataSetChanged();
                 }
                 EditText newMacroNameEdt = page.findViewById(R.id.newMacroNameEdt);
-                RelativeLayout newMacroLyt = page.findViewById(R.id.newMacroNameLyt);
-                Button newMacroBtn = page.findViewById(R.id.newMacroBtn);
+                newMacroNameLyt = page.findViewById(R.id.newMacroNameLyt);
+                ImageView newMacroBtn = page.findViewById(R.id.newMacroBtn);
 
                 macroEditorLyt = page.findViewById(R.id.macroEditorLyt);
                 macroEditorTxt = page.findViewById(R.id.macroEditor);
@@ -596,13 +604,13 @@ public class MainActivity extends AppCompatActivity {
                 macroEditorTxt.setLineNumbersText(macroLineNumbersTxt);
                 macroEditorTxt.setHorizontallyScrolling(true);
 
-                Button createBtn = page.findViewById(R.id.createMacroBtn);
+                ImageView createBtn = page.findViewById(R.id.createMacroBtn);
 
                 createBtn.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        newMacroLyt.setVisibility(View.GONE);
-
+                        newMacroNameLyt.setVisibility(View.GONE);
+                        hideKeyboard();
                         File newMacroFile = new File(getFilesDir() + "/macros/" + newMacroNameEdt.getText().toString());
                         if (!newMacroFile.exists()) {
                             try {
@@ -621,10 +629,14 @@ public class MainActivity extends AppCompatActivity {
                 newMacroBtn.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        newMacroLyt.setVisibility(View.VISIBLE);
+                        newMacroNameLyt.setVisibility(View.VISIBLE);
+                        
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            newMacroLyt.setElevation(1001);
+                            newMacroNameLyt.setElevation(1001);
                         }
+                        newMacroNameEdt.requestFocus();
+                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.showSoftInput(newMacroNameEdt, InputMethodManager.SHOW_IMPLICIT);
                     }
                 });
 
@@ -670,6 +682,38 @@ public class MainActivity extends AppCompatActivity {
         public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
             return view == ((View) object);
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        
+        if(macroEditorLyt.getVisibility() == View.VISIBLE){
+            macroEditorLyt.setVisibility(View.GONE);
+            return;
+        }
+        
+        if(newMacroNameLyt.getVisibility() == View.VISIBLE){
+            newMacroNameLyt.setVisibility(View.GONE);
+            return;
+        }
+
+        if(macroLyt.getVisibility() == View.VISIBLE){
+            macroLyt.setVisibility(View.GONE);
+            return;
+        }
+        
+        super.onBackPressed();
+    }
+
+    public void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Activity.INPUT_METHOD_SERVICE);
+        //Find the currently focused view, so we can grab the correct window token from it.
+        View view = getCurrentFocus();
+        //If no view currently has focus, create a new one, just so we can grab a window token from it
+        if (view == null) {
+            view = new View(this);
+        }
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 
     private class SendSerialTask extends AsyncTask<String, Void, Void> {
@@ -734,8 +778,8 @@ public class MainActivity extends AppCompatActivity {
                 row = (RelativeLayout) inflater.inflate(R.layout.row_macro_file, parent, false);
             }
             TextView fileNameTxt = row.findViewById(R.id.nameTxt);
-            Button runBtn = row.findViewById(R.id.runBtn);
-            Button editBtn = row.findViewById(R.id.editBtn);
+            ImageView runBtn = row.findViewById(R.id.runBtn);
+            ImageView editBtn = row.findViewById(R.id.editBtn);
 
             editBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -778,6 +822,37 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             });
+            
+            fileNameTxt.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    AlertDialog.Builder builder;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        builder = new AlertDialog.Builder(fileNameTxt.getContext(), android.R.style.Theme_Material_Dialog_Alert);
+                    } else {
+                        builder = new AlertDialog.Builder(fileNameTxt.getContext());
+                    }
+                    builder.setTitle("Delete entry")
+                            .setMessage("Are you sure you want to delete this entry?")
+                            .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // continue with delete
+                                    Macro.delete(fileNameTxt.getContext(), getItem(position).getName());
+                                    macroFileAdapter.removeAll();
+                                    macroFileAdapter.addAll(Macro.getMacroFileList(fileNameTxt.getContext()));
+                                    macroFileAdapter.notifyDataSetChanged();
+                                }
+                            })
+                            .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // do nothing
+                                }
+                            })
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .show();
+                    return false;
+                }
+            });
 
             fileNameTxt.setText(getItem(position).getName());
 
@@ -788,7 +863,7 @@ public class MainActivity extends AppCompatActivity {
         public void removeAll() {
             int startingCount = getCount();
             for (int i = 0; i < startingCount; i++) {
-                remove(getItem(i));
+                remove(getItem(0));
             }
         }
     }

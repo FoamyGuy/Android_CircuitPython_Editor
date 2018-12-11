@@ -87,4 +87,10 @@ public class Macro {
             e.printStackTrace();
         }
     }
+
+    public static void delete(Context ctx, String name) {
+        File macroFile = new File(ctx.getFilesDir() + "/macros/" + name);
+        macroFile.delete();
+        
+    }
 }
