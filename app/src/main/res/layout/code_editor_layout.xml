@@ -7,21 +7,22 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
         android:onClick="saveMainPy"
         android:id="@+id/saveBtn"
         android:text="Save"/>
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@id/saveBtn"
-        android:onClick="loadMainPy"
+        android:layout_toLeftOf="@id/saveBtn"
+        android:onClick="loadCodePy"
         android:id="@+id/loadBtn"
         android:text="Load"/>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
+        
         android:onClick="loadSamplePy"
         android:id="@+id/sampleBtn"
         android:text="Sample"/>

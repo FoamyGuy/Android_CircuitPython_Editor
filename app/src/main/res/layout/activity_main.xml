@@ -6,12 +6,65 @@
     android:layout_height="match_parent"
     android:background="#333333"
     tools:context="com.foamyguy.circuitpythoneditor.MainActivity">
+    
+    <RelativeLayout
+        android:id="@+id/titleBar"
+        android:layout_width="match_parent"
+        android:background="#202020"
+        android:layout_height="50dp"
+        android:gravity="center_vertical"
+        >
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CircuitPython Editor"
+            android:textSize="24sp"
+            android:textColor="#DDFFDD"
+            />
+        
+
+
+        <ImageView
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:id="@+id/editorBtn"
+            android:layout_marginRight="4dp"
+            android:layout_alignParentRight="true"
+            android:src="@drawable/icon_editor"
+            android:onClick="showEditorLyt"
+            android:layout_marginLeft="12dp"
+            />
+
+        <ImageView
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:id="@+id/terminalBtn"
+            android:layout_marginLeft="12dp"
+            android:src="@drawable/icon_terminal"
+            android:layout_toLeftOf="@id/editorBtn"
+            android:onClick="showTerminalLyt"
+
+            />
+
+        <ImageView
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:id="@+id/macroBtn"
+            android:layout_toLeftOf="@id/terminalBtn"
+            android:src="@drawable/icon_macro"
+            android:onClick="showMacroLyt"
+            
+
+            />
+    </RelativeLayout>
 
     <ProgressBar
         android:layout_width="match_parent"
         android:layout_height="5dp"
         android:indeterminate="false"
         android:id="@+id/mainProgress"
+        android:layout_below="@id/titleBar"
         android:progressTint="#3333cc"
 
 

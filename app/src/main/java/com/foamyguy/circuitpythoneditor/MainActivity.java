@@ -1,5 +1,6 @@
 package com.foamyguy.circuitpythoneditor;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
@@ -22,10 +23,12 @@ import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
@@ -47,7 +50,7 @@ import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     public static final String TAG = "CircuitPythonEditor";
     final char ctrlC = '\u0003';
@@ -57,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     boolean waitingForRead = false;
 
     private UsbService usbService;
-    private TextView display;
+    private EditText display;
     private EditText editText;
     private ProgressBar mainProgress;
     private MyHandler mHandler;
@@ -94,6 +97,13 @@ public class MainActivity extends AppCompatActivity {
     private MacroFileAdapter macroFileAdapter;
 
     private String currentlyEditingMacro = "";
+    
+    private boolean isInREPL = false;
+    
+    private boolean isLoadingCodePy = false;
+    private boolean isSavingCodePy = false;
+
+    ViewPager mainPager;
     /*
      * Notifications from UsbService will be received here.
      */
@@ -142,8 +152,9 @@ public class MainActivity extends AppCompatActivity {
 
         mainPyStringBuilder = new StringBuilder();
         MainPagerAdapter mAdapter = new MainPagerAdapter();
-        ViewPager mainPager = (ViewPager) findViewById(R.id.pager);
+        mainPager = (ViewPager) findViewById(R.id.pager);
         mainPager.setAdapter(mAdapter);
+        
         mainProgress = (ProgressBar) findViewById(R.id.mainProgress);
 
 
@@ -194,8 +205,8 @@ public class MainActivity extends AppCompatActivity {
     public void onPause() {
         super.onPause();
         unregisterReceiver(mUsbReceiver);
-        //unbindService(usbConnection);
-        stopService(new Intent(this, UsbService.class));
+        unbindService(usbConnection);
+        //stopService(new Intent(this, UsbService.class));
     }
 
     private void startService(Class<?> service, ServiceConnection serviceConnection, Bundle extras) {
@@ -225,7 +236,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendCtrlC(View view) {
-
         sendCtrlC();
         editText.postDelayed(new Runnable() {
             @Override
@@ -238,12 +248,14 @@ public class MainActivity extends AppCompatActivity {
     private void sendCtrlC() {
         if (usbService != null) { // if UsbService was correctly binded, Send data
             usbService.write(("" + ctrlC).getBytes());
+            isInREPL = true;
         }
     }
 
     public void sendCtrlD(View view) {
         if (usbService != null) { // if UsbService was correctly binded, Send data
             usbService.write(("" + ctrlD).getBytes());
+            isInREPL = false;
         }
     }
 
@@ -357,6 +369,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (curIndex >= lines.length - 1) {
             send("f.close()");
+            isSavingCodePy = false;
             mainProgress.setProgress(0);
             curIndex = 0;
             return true;
@@ -402,32 +415,44 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void saveMainPy(View view) {
-        /*
-        import storage
-        storage.remount("/", False)
-         */
+        if (isInREPL) {
+            if (!isLoading && !isSavingCodePy) {
+                isSavingCodePy = true;
+                Log.i("CircuitPythonEditor", "begining write prep");
+                send("import gc");
+                Log.i("CircuitPythonEditor", "after first send");
+                send("f = open('code.py', 'w')");
+                send("f.write('')");
+                send("f.close()");
+                //send("f = open('code.py', 'a')");
+                send("f = open('/code.py', 'a')");
 
-        Log.i("CircuitPythonEditor", "begining write prep");
-        send("import gc");
-        Log.i("CircuitPythonEditor", "after first send");
-        send("f = open('code.py', 'w')");
-        send("f.write('')");
-        send("f.close()");
-        //send("f = open('code.py', 'a')");
-        send("f = open('/code.py', 'a')");
-
-        Log.i("CircuitPythonEditor", "opened file");
-        String[] lines = editorTxt.getText().toString().split("\r\n");
-        Log.i("CircuitPythonEditor", "lines: " + lines.length);
-        mainProgress.setMax(lines.length - 1);
-        writeFileDelayed(lines);
+                Log.i("CircuitPythonEditor", "opened file");
+                String[] lines = editorTxt.getText().toString().split("\r\n");
+                Log.i("CircuitPythonEditor", "lines: " + lines.length);
+                mainProgress.setMax(lines.length - 1);
+                writeFileDelayed(lines);
+            }else{
+                Toast.makeText(view.getContext(), "Please wait for current operation to complete", Toast.LENGTH_SHORT).show();
+            }
+        }else{
+            Toast.makeText(view.getContext(), "Please enter REPL before saving", Toast.LENGTH_SHORT).show();
+        }
 
     }
 
-    public void loadMainPy(View view) {
-        mainProgress.setIndeterminate(true);
-        isLoading = true;
-        sendCtrlC();
+    public void loadCodePy(View view) {
+        if(!isInREPL) {
+            if(!isLoading && !isSavingCodePy) {
+                mainProgress.setIndeterminate(true);
+                isLoading = true;
+                sendCtrlC();
+            }else{
+                Toast.makeText(view.getContext(), "Please wait for current operation to complete", Toast.LENGTH_SHORT).show();
+            }
+        }else{
+            Toast.makeText(view.getContext(), "Please exit REPL before loading", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -450,6 +475,23 @@ public class MainActivity extends AppCompatActivity {
         String macroContent = macroEditorTxt.getText().toString();
         Macro.writeMacroFile(view.getContext(), currentlyEditingMacro, macroContent);
         macroEditorLyt.setVisibility(View.GONE);
+    }
+
+    public void showMacroLyt(View view) {
+        mainPager.setCurrentItem(0);
+        macroLyt.setVisibility(View.VISIBLE);
+        hideKeyboard();
+    }
+
+    public void showTerminalLyt(View view) {
+        if(macroLyt.getVisibility() == View.VISIBLE) {
+            macroLyt.setVisibility(View.GONE);
+        }
+        mainPager.setCurrentItem(0);
+    }
+
+    public void showEditorLyt(View view) {
+        mainPager.setCurrentItem(1);
     }
 
     /*
@@ -566,23 +608,37 @@ public class MainActivity extends AppCompatActivity {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     macroLyt.setElevation(1000f);
                 }
-                display = (TextView) page.findViewById(R.id.terminalTxt);
-                /*display.setOnTouchListener(new View.OnTouchListener() {
-
-                    @Override
-                    public boolean onTouch(View v, MotionEvent event) {
-                        display.getParent().requestDisallowInterceptTouchEvent(true);
+                display = (EditText)page.findViewById(R.id.terminalTxt);
+                display.setTextIsSelectable(true);
+                mainPager.setOnTouchListener(new View.OnTouchListener()
+                {
+                    public boolean onTouch(View p_v, MotionEvent p_event)
+                    {
+                        display.getParent().requestDisallowInterceptTouchEvent(false);
+                        //  We will have to follow above for all scrollable contents
                         return false;
                     }
-                });*/
-                display.setOnLongClickListener(new View.OnLongClickListener() {
-                    @Override
-                    public boolean onLongClick(View view) {
-                        macroLyt.setVisibility(View.VISIBLE);
-                        hideKeyboard();
-                        return true;
+                });
+                display.setOnTouchListener(new View.OnTouchListener()
+                {
+                    public boolean onTouch(View p_v, MotionEvent p_event)
+                    {
+                        // this will disallow the touch request for parent scroll on touch of child view
+                        p_v.getParent().requestDisallowInterceptTouchEvent(false);
+                        return false;
                     }
                 });
+                //display.setHorizontallyScrolling(true);
+                Log.i(TAG, display.toString());
+                /*display.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        macroLyt.setVisibility(View.VISIBLE);
+                        hideKeyboard();
+                        
+                    }
+                });*/
+
 
                 ListView macroList = page.findViewById(R.id.macroFilesLst);
                 File macrosDir = new File(getFilesDir() + "/macros/");
@@ -640,7 +696,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-                display.setMovementMethod(new ScrollingMovementMethod());
+                //display.setMovementMethod(new ScrollingMovementMethod());
                 editText = (EditText) page.findViewById(R.id.inputEdt);
                 Button sendButton = (Button) page.findViewById(R.id.buttonSend);
                 sendButton.setOnClickListener(new View.OnClickListener() {

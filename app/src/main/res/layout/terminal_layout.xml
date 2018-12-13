@@ -7,17 +7,21 @@
     >
 
 
-    <TextView
+    <EditText
         android:id="@+id/terminalTxt"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_centerHorizontal="true"
-        android:layout_above="@id/inputEdt"
-        android:background="#333333"
+        android:background="#292929"
+        android:layout_above="@+id/inputEdt"
+        
         android:scrollbars="vertical|horizontal"
-
+        android:textIsSelectable="true"
         android:textColor="#00AA00"
-        android:gravity="bottom" />
+        android:inputType="none"
+        android:gravity="bottom"
+
+
+         />
 
     <EditText
         android:id="@+id/inputEdt"
@@ -26,7 +30,7 @@
         android:layout_above="@id/buttonSend"
         android:textColor="#00AA00"
         android:ems="10">
-7
+
     </EditText>
 
 
@@ -116,6 +120,8 @@
                 android:layout_height="wrap_content"
                 android:id="@+id/newMacroNameEdt"
                 android:layout_alignParentStart="true"
+
+                android:textColor="#aaaaaa"
                 android:layout_toStartOf="@id/createMacroBtn" />
             
         </RelativeLayout>
