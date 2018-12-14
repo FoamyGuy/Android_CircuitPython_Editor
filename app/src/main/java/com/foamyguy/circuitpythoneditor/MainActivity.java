@@ -405,7 +405,7 @@ public class MainActivity extends Activity {
                 public void run() {
                     curIndex++;
                     //mainProgress.setProgress(curIndex);
-
+                    
                     executeMacro(macroLines);
                 }
             }, 100);
@@ -871,10 +871,14 @@ public class MainActivity extends Activity {
             runBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    String macroStr = Macro.readMacroFile(view.getContext(), getItem(position).getName());
-                    String[] lines = macroStr.split("\n");
-                    executeMacro(lines);
-                    macroLyt.setVisibility(View.GONE);
+                    if(isInREPL) {
+                        String macroStr = Macro.readMacroFile(view.getContext(), getItem(position).getName());
+                        String[] lines = macroStr.split("\n");
+                        executeMacro(lines);
+                        macroLyt.setVisibility(View.GONE);
+                    }else{
+                        Toast.makeText(view.getContext(), "Please enter REPL before using macro", Toast.LENGTH_SHORT).show();
+                    }
 
                 }
             });
