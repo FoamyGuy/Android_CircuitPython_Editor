@@ -102,6 +102,7 @@ public class MainActivity extends Activity {
     
     private boolean isLoadingCodePy = false;
     private boolean isSavingCodePy = false;
+    private boolean isReadyForWrite = false;
 
     ViewPager mainPager;
     /*
@@ -352,38 +353,54 @@ public class MainActivity extends Activity {
     }
 
     public boolean writeFileDelayed(String[] lines) {
-        Log.i("CircuitPythonEditor", "line: " + lines[curIndex]);
-        if (lines[curIndex].length() > 0) {
-            //Log.i("CircuitPythonEditor", "last char: " + lines[curIndex].charAt(lines[curIndex].length() - 1));
-            //Log.i("CircuitPythonEditor", "newline: " + (lines[curIndex].charAt(lines[curIndex].length() - 1) == '\n'));
-            send("f.write(\"\"\"" + lines[curIndex].substring(0, lines[curIndex].length() - 1) + "\\r\\n\"\"\")");
-        } else {
-            send("f.write(\"\"\"" + lines[curIndex] + "\\r\\n\"\"\")");
-        }
+        if(isReadyForWrite){
+            Log.i("CircuitPythonEditor", "line: " + lines[curIndex]);
+            //Log.i("CircuitPythonEditor", "setting RTS high");
+            //usbService.setRTS(true);
+            //usbService.setRTS(false);
+            isReadyForWrite = false;
+            if (lines[curIndex].length() > 0) {
+                //Log.i("CircuitPythonEditor", "last char: " + lines[curIndex].charAt(lines[curIndex].length() - 1));
+                //Log.i("CircuitPythonEditor", "newline: " + (lines[curIndex].charAt(lines[curIndex].length() - 1) == '\n'));
+                send("f.write(\"\"\"" + lines[curIndex].substring(0, lines[curIndex].length() - 1) + "\\r\\n\"\"\")");
+            } else {
+                send("f.write(\"\"\"" + lines[curIndex] + "\\r\\n\"\"\")");
+            }
         /*if (lines[curIndex].length() > 1) {
             Log.i("CircuitPythonEditor", "last two: " + lines[curIndex].substring(lines[curIndex].length()-2));
         }*/
 
-        //send("gc.collect()");
-        //send("print(gc.mem_free())");
+            //send("gc.collect()");
+            //send("print(gc.mem_free())");
 
-        if (curIndex >= lines.length - 1) {
-            send("f.close()");
-            isSavingCodePy = false;
-            mainProgress.setProgress(0);
-            curIndex = 0;
-            return true;
-        } else {
+            if (curIndex >= lines.length - 1) {
+                send("f.close()");
+                isSavingCodePy = false;
+                mainProgress.setProgress(0);
+                curIndex = 0;
+                return true;
+            } else {
+                editorTxt.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        curIndex++;
+                        mainProgress.setProgress(curIndex);
+
+                        writeFileDelayed(lines);
+                    }
+                }, 50);
+            }
+        } else{ // not ready for write
+            Log.i(TAG, "wasn't ready for write, posting next try");
             editorTxt.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    curIndex++;
                     mainProgress.setProgress(curIndex);
-
                     writeFileDelayed(lines);
                 }
-            }, 100);
+            }, 50);
         }
+        
         return false;
     }
 
@@ -436,7 +453,27 @@ public class MainActivity extends Activity {
                 Toast.makeText(view.getContext(), "Please wait for current operation to complete", Toast.LENGTH_SHORT).show();
             }
         }else{
-            Toast.makeText(view.getContext(), "Please enter REPL before saving", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(view.getContext(), "Please enter REPL before saving", Toast.LENGTH_SHORT).show();
+            AlertDialog.Builder builder;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
+            } else {
+                builder = new AlertDialog.Builder(this);
+            }
+            builder.setTitle("Warning")
+                    .setMessage("Must enter REPL before saving. Please send CTRL-C, then try again.")
+                    .setPositiveButton("Send CTRL-C", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            sendCtrlC(null);
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // do nothing
+                        }
+                    })
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
         }
 
     }
@@ -555,10 +592,16 @@ public class MainActivity extends Activity {
                             mActivity.get().waitingForTabResult = false;
                         }
                     }
+                    if(mActivity.get().isSavingCodePy){
+                        if(data.contains(">>>")){
+                            mActivity.get().isReadyForWrite = true;
+                        }
+                    }
                     mActivity.get().display.append(data);
                     break;
                 case UsbService.CTS_CHANGE:
                     Log.i("CircuitPythonEditor", "CTS");
+                    
                     break;
                 case UsbService.DSR_CHANGE:
                     Log.i("CircuitPythonEditor", "DSR");
@@ -710,6 +753,7 @@ public class MainActivity extends Activity {
                             }
                             if (usbService != null) { // if UsbService was correctly binded, Send data
                                 usbService.write((data + "\r\n").getBytes());
+                                
                                 editText.setText("");
                             }
                         }

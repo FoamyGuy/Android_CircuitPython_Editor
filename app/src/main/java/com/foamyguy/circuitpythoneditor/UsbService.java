@@ -12,6 +12,7 @@ import android.hardware.usb.UsbManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 
 import com.felhr.usbserial.CDCSerialDevice;
 import com.felhr.usbserial.UsbSerialDevice;
@@ -75,6 +76,7 @@ public class UsbService extends Service {
     private UsbSerialInterface.UsbCTSCallback ctsCallback = new UsbSerialInterface.UsbCTSCallback() {
         @Override
         public void onCTSChanged(boolean state) {
+            Log.i("CircuitPythonEditor", "CTS: " + state);
             if(mHandler != null)
                 mHandler.obtainMessage(CTS_CHANGE).sendToTarget();
         }
@@ -167,6 +169,13 @@ public class UsbService extends Service {
     public void write(byte[] data) {
         if (serialPort != null)
             serialPort.write(data);
+            
+    }
+    
+    public void setRTS(boolean value){
+        if (serialPort != null) {
+            serialPort.setRTS(value);
+        }
     }
 
     public void setHandler(Handler mHandler) {
@@ -254,7 +263,7 @@ public class UsbService extends Service {
                      * UsbSerialInterface.FLOW_CONTROL_RTS_CTS only for CP2102 and FT232
                      * UsbSerialInterface.FLOW_CONTROL_DSR_DTR only for CP2102 and FT232
                      */
-                    serialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
+                    serialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_RTS_CTS);
                     serialPort.read(mCallback);
                     serialPort.getCTS(ctsCallback);
                     serialPort.getDSR(dsrCallback);
