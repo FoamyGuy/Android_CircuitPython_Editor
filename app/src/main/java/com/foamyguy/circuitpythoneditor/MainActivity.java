@@ -488,7 +488,27 @@ public class MainActivity extends Activity {
                 Toast.makeText(view.getContext(), "Please wait for current operation to complete", Toast.LENGTH_SHORT).show();
             }
         }else{
-            Toast.makeText(view.getContext(), "Please exit REPL before loading", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(view.getContext(), "Please exit REPL before loading", Toast.LENGTH_SHORT).show();
+            AlertDialog.Builder builder;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
+            } else {
+                builder = new AlertDialog.Builder(this);
+            }
+            builder.setTitle("Warning")
+                    .setMessage("Must exit REPL before loading. Please send CTRL-D, then try again.")
+                    .setPositiveButton("Send CTRL-D", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            sendCtrlD(null);
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // do nothing
+                        }
+                    })
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
         }
     }
 
@@ -921,7 +941,27 @@ public class MainActivity extends Activity {
                         executeMacro(lines);
                         macroLyt.setVisibility(View.GONE);
                     }else{
-                        Toast.makeText(view.getContext(), "Please enter REPL before using macro", Toast.LENGTH_SHORT).show();
+                        //Toast.makeText(view.getContext(), "Please enter REPL before using macro", Toast.LENGTH_SHORT).show();
+                        AlertDialog.Builder builder;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            builder = new AlertDialog.Builder(fileNameTxt.getContext(), android.R.style.Theme_Material_Dialog_Alert);
+                        } else {
+                            builder = new AlertDialog.Builder(fileNameTxt.getContext());
+                        }
+                        builder.setTitle("Warning")
+                                .setMessage("Must enter REPL before saving. Please send CTRL-C, then try again.")
+                                .setPositiveButton("Send CTRL-C", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        sendCtrlC(null);
+                                    }
+                                })
+                                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        // do nothing
+                                    }
+                                })
+                                .setIcon(android.R.drawable.ic_dialog_alert)
+                                .show();
                     }
 
                 }
