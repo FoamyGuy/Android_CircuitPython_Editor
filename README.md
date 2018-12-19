@@ -10,7 +10,7 @@ This app serves as a USB serial terminal for Circuit Python boards. With it you 
 
 [See the Hackaday Project page for more info.](https://hackaday.io/project/162561-android-circuit-python-editor)
 
-### Your Circuit Python board must have it's storage mounted as writable in order for the save function in this app to work! [See the guide to learn how to set it up](https://play.google.com/store/apps/details?id=com.foamyguy.circuitpythoneditor)
+### Your Circuit Python board must have it's storage mounted as writable in order for the save function in this app to work! [See the guide to learn how to set it up](https://learn.adafruit.com/using-the-android-circuitpython-editor)
 
 Thank you to:
  * [The MicroPython Project](https://github.com/micropython/micropython)
