@@ -55,6 +55,8 @@ public class MainActivity extends Activity {
     public static final String TAG = "CircuitPythonEditor";
     final char ctrlC = '\u0003';
     final char ctrlD = '\u0004';
+    final String upArrow = "\u001b[A";
+    final String downArrow = "\u001b[B";
     final char tab = '\t';
 
     boolean waitingForRead = false;
@@ -103,6 +105,8 @@ public class MainActivity extends Activity {
     private boolean isLoadingCodePy = false;
     private boolean isSavingCodePy = false;
     private boolean isReadyForWrite = false;
+    
+    private boolean sentUp = false;
 
     ViewPager mainPager;
     /*
@@ -257,6 +261,19 @@ public class MainActivity extends Activity {
         if (usbService != null) { // if UsbService was correctly binded, Send data
             usbService.write(("" + ctrlD).getBytes());
             isInREPL = false;
+        }
+    }
+    public void sendUpArrow(View view) {
+        if (usbService != null) { // if UsbService was correctly binded, Send data
+            usbService.write(("" + upArrow).getBytes());
+            sentUp = true;
+        }
+    }
+
+    public void sendDownArrow(View view) {
+        if (usbService != null) { // if UsbService was correctly binded, Send data
+            usbService.write(("" + downArrow).getBytes());
+            sentUp = true;
         }
     }
 
@@ -563,13 +580,14 @@ public class MainActivity extends Activity {
 
         @Override
         public void handleMessage(Message msg) {
+            boolean dontShow = false;
             switch (msg.what) {
                 case SyncUsbService.SYNC_READ:
                     //
                     // break;
                 case UsbService.MESSAGE_FROM_SERIAL_PORT:
                     String data = (String) msg.obj;
-                    //Log.i("CircuitPythonEditor", data);
+                    Log.i("CircuitPythonEditor", data);
                     if (mActivity.get().isLoading) {
                         if (data.contains("Press any key to enter the REPL. Use CTRL-D to reload.")) {
                             Log.i("CircuitPythonEditor", "Found REPL msg");
@@ -617,7 +635,22 @@ public class MainActivity extends Activity {
                             mActivity.get().isReadyForWrite = true;
                         }
                     }
-                    mActivity.get().display.append(data);
+                    if (data.startsWith("\u001b[") && data.endsWith("D")){
+                        dontShow = true;
+                        int number = Integer.valueOf(data.replace("\u001b[", "").replace("D", ""));
+                        
+                        String curDisplay = mActivity.get().display.getText().toString();
+                        String editDisplay = curDisplay.substring(0, curDisplay.length() - number);
+                        mActivity.get().display.setText(editDisplay);
+                        
+                    }
+                    if (data.equals("\u001b[K")){
+                        dontShow = true;
+                    }
+                    if (!dontShow) {
+                        mActivity.get().display.append(data);
+                        mActivity.get().display.setSelection(mActivity.get().display.getText().toString().length()-1);
+                    }
                     break;
                 case UsbService.CTS_CHANGE:
                     Log.i("CircuitPythonEditor", "CTS");
@@ -768,13 +801,22 @@ public class MainActivity extends Activity {
                         if (!editText.getText().toString().equals("")) {
                             String data = editText.getText().toString();
                             if (alreadySent.toString().length() > 0) {
-                                data = data.replaceFirst(alreadySent.toString(), "");
+                                /* Use substring instead of replaceFirst
+                                 * replaceFirst() is using regex and having
+                                 * escape chars like ( in the string break it
+                                  * */
+                                //data = data.replaceFirst(alreadySent.toString(), "");
+                                data = data.substring(alreadySent.length());
                                 alreadySent = new StringBuilder();
                             }
                             if (usbService != null) { // if UsbService was correctly binded, Send data
                                 usbService.write((data + "\r\n").getBytes());
                                 
                                 editText.setText("");
+                            }
+                        }else{
+                            if(sentUp){
+                                usbService.write(("\r\n").getBytes());
                             }
                         }
                     }

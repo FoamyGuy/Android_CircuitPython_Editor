@@ -27,11 +27,28 @@
         android:id="@+id/inputEdt"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@id/buttonSend"
+        android:layout_above="@+id/buttonUpArrow"
         android:textColor="#00AA00"
         android:ems="10">
 
     </EditText>
+
+    <Button
+        android:id="@+id/buttonUpArrow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Up"
+        android:layout_above="@id/buttonSend"
+        android:onClick="sendUpArrow"/>
+
+    <Button
+        android:id="@+id/buttonDownArrow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Down"
+        android:layout_toRightOf="@id/buttonUpArrow"
+        android:layout_above="@id/buttonSend"
+        android:onClick="sendDownArrow"/>
 
 
     <Button
