@@ -57,6 +57,7 @@ public class MainActivity extends Activity {
     final char ctrlD = '\u0004';
     final String upArrow = "\u001b[A";
     final String downArrow = "\u001b[B";
+    final String clearLine = "\u001b[K";
     final char tab = '\t';
 
     boolean waitingForRead = false;
@@ -105,6 +106,8 @@ public class MainActivity extends Activity {
     private boolean isLoadingCodePy = false;
     private boolean isSavingCodePy = false;
     private boolean isReadyForWrite = false;
+    
+    private boolean waitingOnHistoryResult = false;
     
     private boolean sentUp = false;
 
@@ -267,13 +270,26 @@ public class MainActivity extends Activity {
         if (usbService != null) { // if UsbService was correctly binded, Send data
             usbService.write(("" + upArrow).getBytes());
             sentUp = true;
+            waitingOnHistoryResult = true;
+        }
+    }
+
+    private void clearSavedTerminal(int cols) {
+        
+        if (usbService != null) { // if UsbService was correctly binded, Send data
+            //usbService.write(("\u001b[" + cols + "D").getBytes());
+            //usbService.write(clearLine.getBytes());
+            for (int i = 0; i < cols; i++){
+                usbService.write("\b".getBytes());    
+            }
+            //display.setText(display.getText().toString().substring(0, display.getText().toString().length() - cols));
         }
     }
 
     public void sendDownArrow(View view) {
         if (usbService != null) { // if UsbService was correctly binded, Send data
             usbService.write(("" + downArrow).getBytes());
-            sentUp = true;
+            waitingOnHistoryResult = true;
         }
     }
 
@@ -647,6 +663,15 @@ public class MainActivity extends Activity {
                     if (data.equals("\u001b[K")){
                         dontShow = true;
                     }
+                    if (data.equals("\b")){
+                        dontShow = true;
+                    }
+                    if(mActivity.get().waitingOnHistoryResult){
+                        mActivity.get().waitingOnHistoryResult = false;
+                        mActivity.get().editText.setText(data);
+                        mActivity.get().clearSavedTerminal(data.length());
+                        dontShow = true;
+                    }
                     if (!dontShow) {
                         mActivity.get().display.append(data);
                         mActivity.get().display.setSelection(mActivity.get().display.getText().toString().length()-1);
@@ -662,6 +687,8 @@ public class MainActivity extends Activity {
             }
         }
     }
+
+
 
     private void showLineNumbers() {
         String lineNumbersStr = "";
