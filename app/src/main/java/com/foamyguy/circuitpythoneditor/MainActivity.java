@@ -27,6 +27,7 @@ import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -395,7 +396,8 @@ public class MainActivity extends Activity {
             if (lines[curIndex].length() > 0) {
                 //Log.i("CircuitPythonEditor", "last char: " + lines[curIndex].charAt(lines[curIndex].length() - 1));
                 //Log.i("CircuitPythonEditor", "newline: " + (lines[curIndex].charAt(lines[curIndex].length() - 1) == '\n'));
-                send("f.write(\"\"\"" + lines[curIndex].substring(0, lines[curIndex].length() - 1) + "\\r\\n\"\"\")");
+                send("f.write(\"\"\"" + lines[curIndex] + "\\r\\n\"\"\")");
+                //send("f.write(\"\"\"" + lines[curIndex].substring(0, lines[curIndex].length() - 1) + "\\r\\n\"\"\")");
             } else {
                 send("f.write(\"\"\"" + lines[curIndex] + "\\r\\n\"\"\")");
             }
@@ -478,7 +480,7 @@ public class MainActivity extends Activity {
                 send("f = open('/code.py', 'a')");
 
                 Log.i("CircuitPythonEditor", "opened file");
-                String[] lines = editorTxt.getText().toString().split("\r\n");
+                String[] lines = editorTxt.getText().toString().replace("\r","").split("\n");
                 Log.i("CircuitPythonEditor", "lines: " + lines.length);
                 mainProgress.setMax(lines.length - 1);
                 writeFileDelayed(lines);
@@ -857,6 +859,8 @@ public class MainActivity extends Activity {
                 editorTxt.setHorizontallyScrolling(true);
                 lineNumbersTxt = (TextView) page.findViewById(R.id.editorLineNumbers);
                 editorTxt.setLineNumbersText(lineNumbersTxt);
+                
+                
 
                 /*editorTxt.setOptions(Options.Default.get(editorTxt.getContext())
                         .withLanguage("python")
