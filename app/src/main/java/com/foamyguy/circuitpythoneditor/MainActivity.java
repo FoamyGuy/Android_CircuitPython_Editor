@@ -669,6 +669,7 @@ public class MainActivity extends Activity {
                     if(mActivity.get().waitingOnHistoryResult){
                         mActivity.get().waitingOnHistoryResult = false;
                         mActivity.get().editText.setText(data);
+                        mActivity.get().editText.setSelection(data.length());
                         mActivity.get().clearSavedTerminal(data.length());
                         dontShow = true;
                     }
